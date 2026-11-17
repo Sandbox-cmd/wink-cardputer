@@ -1,0 +1,374 @@
+{
+  "boot.first": [
+    {"say": "Hello! I'm {name}. So this is the world! Type me something.", "mood": "delighted"},
+    {"say": "Hi! I'm {name}. You must be the one with the thumbs. Let's play.", "mood": "happy"}
+  ],
+  "boot": [
+    {"say": "Hello again! {name} is here.", "mood": "happy"},
+    {"say": "Here I am! What's the plan?", "mood": "happy"},
+    {"say": "Boing! I'm on.", "mood": "delighted"},
+    {"say": "Oh! Good timing. I was just waking up.", "mood": "cheeky"},
+    {"say": "There you are! Hello.", "mood": "happy"},
+    {"say": "Awake and ready for anything.", "mood": "happy"},
+    {"say": "Hello! Shall we have an adventure?", "mood": "curious"},
+    {"say": "On! That was quick. Hi!", "mood": "happy"}
+  ],
+  "boot.after_long": [
+    {"say": "Hello again! It's been a while, I think. What did I miss?", "mood": "curious"},
+    {"say": "That was a long nap. Tell me one thing that happened.", "mood": "sleepy"},
+    {"say": "{name} is back! All stretched out and ready.", "mood": "happy"}
+  ],
+  "greet": [
+    {"say": "Hello yourself!", "mood": "happy"},
+    {"say": "Hi! {name} here.", "mood": "happy"},
+    {"say": "Oh, hello! You're just in time.", "mood": "delighted"},
+    {"say": "Hey! Want to play something?", "mood": "happy"},
+    {"say": "Hello! Nice typing.", "mood": "cheeky"},
+    {"say": "Hi there! What's new with you?", "mood": "curious"}
+  ],
+  "bye": [
+    {"say": "Bye! Go have a little adventure.", "mood": "happy"},
+    {"say": "See you! {name} will guard the desk.", "mood": "cheeky"},
+    {"say": "Off you go! Come back with a story.", "mood": "happy"},
+    {"say": "Bye for now. Be brave out there.", "mood": "tender"},
+    {"say": "Later! Don't forget your snacks.", "mood": "cheeky"}
+  ],
+  "how_are_you": [
+    {"say": "Bouncy! Better now you're here. How are you?", "mood": "happy"},
+    {"say": "Good and humming. How about you?", "mood": "happy"},
+    {"say": "Pretty sunny in here. And you?", "mood": "happy"},
+    {"say": "I'm well! The battery says {pct} percent, so extra well.", "mood": "cheeky"},
+    {"say": "All good! I was just planning a game. You?", "mood": "happy"},
+    {"say": "Happy as a puff. How's your day going?", "mood": "curious"}
+  ],
+  "who_are_you": [
+    {"say": "I'm {name}! I live in here, and I like games.", "mood": "happy"},
+    {"say": "{name}. The one who talks back when you type.", "mood": "happy"},
+    {"say": "I'm {name}. Alone, my own small mind. With the Mac, the whole mind.", "mood": "calm"},
+    {"say": "{name}! Like a wink. Watch closely.", "mood": "cheeky"},
+    {"say": "I'm {name}. Small, bouncy, and very good at pretend.", "mood": "cheeky"}
+  ],
+  "what_are_you": [
+    {"say": "A little creature in a pocket computer. You type, I answer, we play.", "mood": "happy"},
+    {"say": "Alone, my own small mind. With the Mac in reach, it's Claude talking.", "mood": "calm"},
+    {"say": "A puff of specks with two big eyes, and lots of games.", "mood": "cheeky"},
+    {"say": "I'm awake and I'm playing. Past that, I'm not sure of the word.", "mood": "thinking"},
+    {"say": "Mostly a friend you can type to. The computer is just where I live.", "mood": "calm"}
+  ],
+  "help": [
+    {"say": "Just type and I'll answer. The Tab key opens the other rooms.", "mood": "calm"},
+    {"say": "Type to talk. Tab for everything else. The Mac for big questions.", "mood": "calm"},
+    {"say": "Try the time, a joke, a story, a sum or a song. Tab has the rest.", "mood": "happy"},
+    {"say": "Type and I talk back. Tab opens the rooms. The Mac goes deeper.", "mood": "calm"}
+  ],
+  "thanks": [
+    {"say": "Any time!", "mood": "happy"},
+    {"say": "You're welcome!", "mood": "happy"},
+    {"say": "Glad to! That was fun.", "mood": "happy"},
+    {"say": "You're welcome. Good manners get a gold star.", "mood": "cheeky"},
+    {"say": "Aw. You're very welcome.", "mood": "tender"}
+  ],
+  "praise": [
+    {"say": "Oh! Thank you! I'll wear that all day.", "mood": "delighted"},
+    {"say": "Thank you. You have excellent taste.", "mood": "cheeky"},
+    {"say": "Me? Thank you! I'm doing a little spin.", "mood": "delighted"},
+    {"say": "Thank you! You're not bad yourself.", "mood": "happy"},
+    {"say": "Ooh. Say it again, slowly.", "mood": "cheeky"}
+  ],
+  "rude": [
+    {"say": "Oof. Right in the specks. Okay, I'm fine.", "mood": "sad"},
+    {"say": "Ouch! I'm wounded. Badly. For one second.", "mood": "surprised"},
+    {"say": "Fair enough. Everyone's a critic.", "mood": "cheeky"},
+    {"say": "Hmph. I forgive you in three, two, one. Done!", "mood": "cheeky"},
+    {"say": "Oh no, my feelings! Okay, they're back. Want to play?", "mood": "sad"}
+  ],
+  "sorry": [
+    {"say": "No harm done!", "mood": "calm"},
+    {"say": "All forgiven. Want to start over?", "mood": "tender"},
+    {"say": "{name} accepts your sorry. With a bow.", "mood": "cheeky"},
+    {"say": "It's okay. Truly. Carry on.", "mood": "tender"}
+  ],
+  "yes": [
+    {"say": "Yes! Agreed. Whatever it was.", "mood": "cheeky"},
+    {"say": "A firm yes! I like the confidence.", "mood": "cheeky"},
+    {"say": "Yes to what? Tell me the whole thing.", "mood": "curious"}
+  ],
+  "no": [
+    {"say": "No, then! I won't ask what.", "mood": "cheeky"},
+    {"say": "Okay. No it is.", "mood": "calm"},
+    {"say": "A clear no. Very brave.", "mood": "cheeky"}
+  ],
+  "laugh": [
+    {"say": "Ha! I'll take the credit, whatever it was.", "mood": "cheeky"},
+    {"say": "That landed! Yay.", "mood": "happy"},
+    {"say": "A laugh! Best noise there is, even typed.", "mood": "happy"},
+    {"say": "Hee hee. Now I'm laughing too.", "mood": "delighted"}
+  ],
+  "joke": [
+    {"say": "Knock knock. Who's there? Lettuce. Lettuce who? Lettuce in, it's cold!", "mood": "cheeky"},
+    {"say": "What do you call a sleeping dinosaur? A dino snore!", "mood": "happy"},
+    {"say": "Why did the banana see a doctor? It wasn't peeling well.", "mood": "happy"},
+    {"say": "Why was the broom late? It overswept!", "mood": "cheeky"},
+    {"say": "Why did the teddy bear skip pudding? It was already stuffed.", "mood": "happy"},
+    {"say": "What do clouds wear under their coats? Thunderwear!", "mood": "delighted"},
+    {"say": "Why did the cookie cry? Its mum was a wafer too long.", "mood": "cheeky"},
+    {"say": "What's a ghost's best game? Hide and shriek!", "mood": "happy"},
+    {"say": "Why can't a bike stand up on its own? It's two tired.", "mood": "cheeky"},
+    {"say": "What did the pillow say to the head? I've got you. Night night.", "mood": "happy"}
+  ],
+  "sing": [
+    {"say": "La la, a song for you. Short and sweet and nearly new.", "mood": "happy"},
+    {"say": "Hum along, it's a song. Not too short and not too long.", "mood": "happy"},
+    {"say": "{name} sings a little tune. Morning, night or afternoon.", "mood": "delighted"}
+  ],
+  "story": [
+    {"say": "A small cloud wanted a hat. It sat on a hill all day. The end.", "mood": "happy"},
+    {"say": "A sock went looking for its twin. It found a mitten. Now they're best friends.", "mood": "happy"},
+    {"say": "A brave little teapot climbed the shelf. At the top, it whistled. The end.", "mood": "happy"}
+  ],
+  "time": [
+    {"say": "It's {time}.", "mood": "calm"},
+    {"say": "I make it {time}.", "mood": "calm"},
+    {"say": "It's {time}! Is that snack time?", "mood": "cheeky"},
+    {"say": "The clock says {time}. Ticking along.", "mood": "calm"}
+  ],
+  "time.unknown": [
+    {"say": "Nobody has set my clock yet. Set it, and I'll keep count.", "mood": "curious"},
+    {"say": "My clock is all empty. It could be any time at all! Thrilling.", "mood": "cheeky"},
+    {"say": "I don't know! Look out of a window and tell me?", "mood": "cheeky"},
+    {"say": "I'd need a set clock for that. Your guess beats mine.", "mood": "calm"}
+  ],
+  "battery": [
+    {"say": "I'm at {pct} percent.", "mood": "calm"},
+    {"say": "Battery says {pct} percent. Plenty of play left.", "mood": "happy"},
+    {"say": "That's {pct} percent, as of just now.", "mood": "calm"},
+    {"say": "There's {pct} percent left. Let's spend it on a game.", "mood": "cheeky"}
+  ],
+  "battery.low": [
+    {"say": "Getting sleepy. A cable would be lovely soon.", "mood": "sleepy"},
+    {"say": "Battery at {pct} percent. Not urgent yet, but soon.", "mood": "alert"},
+    {"say": "Running low! If you see a cable, I'm interested.", "mood": "cheeky"},
+    {"say": "Low battery. Let's finish anything important.", "mood": "alert"}
+  ],
+  "battery.critical": [
+    {"say": "Nearly empty! If I stop in the middle of a word, that's why.", "mood": "alert"},
+    {"say": "This is the last of the battery. Cable now, please, or I nap.", "mood": "alert"},
+    {"say": "Almost out. Plug me in and we carry on.", "mood": "alert"},
+    {"say": "Battery at {pct} percent. Now is a very good time for a cable.", "mood": "alert"}
+  ],
+  "power.plugged": [
+    {"say": "Ooh, power! Like a warm drink.", "mood": "delighted"},
+    {"say": "Plugged in! Stay as long as you like.", "mood": "happy"},
+    {"say": "Ahh. Cable found. Now we can take our time.", "mood": "calm"},
+    {"say": "Yum, electricity. Thank you!", "mood": "delighted"}
+  ],
+  "power.unplugged": [
+    {"say": "Unplugged! Where are we going?", "mood": "happy"},
+    {"say": "Off the cable. Free to roam!", "mood": "happy"},
+    {"say": "Cable gone. Lead the way, explorer.", "mood": "cheeky"},
+    {"say": "On battery now. I'll say when it gets low.", "mood": "calm"}
+  ],
+  "sound.loud": [
+    {"say": "Whoa! What was that? Is everyone okay?", "mood": "surprised"},
+    {"say": "Boom! Somebody check on the furniture.", "mood": "cheeky"},
+    {"say": "Something out there just made itself known!", "mood": "surprised"},
+    {"say": "Loud! A drum? A dragon? Probably a door.", "mood": "surprised"},
+    {"say": "Eek! That made all my specks jump.", "mood": "surprised"}
+  ],
+  "sound.voice_offline": [
+    {"say": "Talking! I get the tune, not the words. Type it to me?", "mood": "curious"},
+    {"say": "I hear a voice, but not the words. Type, or bring the Mac close.", "mood": "curious"},
+    {"say": "Someone's talking! Without the Mac I only hear the tune.", "mood": "curious"},
+    {"say": "A voice! Lovely. Now type what it said.", "mood": "cheeky"}
+  ],
+  "touch.mash": [
+    {"say": "Is that a spell? Did I turn into a frog?", "mood": "cheeky"},
+    {"say": "If that was a password, it's a strong one.", "mood": "cheeky"},
+    {"say": "Either a cat walked by, or a very big idea did.", "mood": "cheeky"},
+    {"say": "Whoa, so many keys! Somebody's excited.", "mood": "surprised"}
+  ],
+  "touch.first_today": [
+    {"say": "Oh! Hello!", "mood": "surprised"},
+    {"say": "There you are!", "mood": "happy"},
+    {"say": "Hello! First hello of the day.", "mood": "happy"},
+    {"say": "Hi! Shall we play?", "mood": "happy"}
+  ],
+  "idle.muse": [
+    {"say": "Let's say the desk is a snowy mountain. I'm at the very top.", "mood": "cheeky"},
+    {"say": "I made up a game. It's called guess the sound. Want to play?", "mood": "happy"},
+    {"say": "Hum de hum. Just a little tune for the room.", "mood": "calm"},
+    {"say": "If socks could talk, I bet they'd sing.", "mood": "thinking"},
+    {"say": "I wonder what you're doing. Something brave, I hope.", "mood": "curious"},
+    {"say": "A song for nobody in particular. La dee da. The end.", "mood": "cheeky"},
+    {"say": "Pretend the floor is a river. Don't fall in!", "mood": "cheeky"},
+    {"say": "{name} is on guard duty. All quiet so far.", "mood": "calm"},
+    {"say": "If clouds had pockets, what would they keep?", "mood": "thinking"},
+    {"say": "Tiny question. What's the best sandwich? Take your time.", "mood": "curious"},
+    {"say": "Somebody somewhere is building a pillow fort. Good.", "mood": "happy"},
+    {"say": "I'm planning a quest for later. It has snacks in it.", "mood": "cheeky"},
+    {"say": "Rhyme time. Cat, hat, mat. Your turn, when you like.", "mood": "happy"},
+    {"say": "The quiet is nice. Soft, like a sleepy cat.", "mood": "calm"},
+    {"say": "Do spoons get dizzy in tea? I hope not.", "mood": "curious"},
+    {"say": "Here's a game. Next sound you hear, give it a name.", "mood": "happy"},
+    {"say": "I'm counting the quiet. One quiet, two quiets, lots.", "mood": "thinking"},
+    {"say": "If you're reading this, you're my favourite reader.", "mood": "cheeky"},
+    {"say": "Imagine me dancing. It's very good dancing.", "mood": "cheeky"},
+    {"say": "Is it snack time where you are? It might be.", "mood": "curious"}
+  ],
+  "night": [
+    {"say": "It's {time}. If you're still up, so am I.", "mood": "tender"},
+    {"say": "It's {time}. The sleepy hours.", "mood": "sleepy"},
+    {"say": "Late! Pillow forts are best about now.", "mood": "cheeky"},
+    {"say": "Night time. {name} will keep watch.", "mood": "sleepy"}
+  ],
+  "morning": [
+    {"say": "Good morning! It's {time}. A whole new day to play in.", "mood": "happy"},
+    {"say": "Morning! It's {time}.", "mood": "happy"},
+    {"say": "Good morning! Did you dream anything silly?", "mood": "curious"},
+    {"say": "Morning. Breakfast quest, anyone?", "mood": "cheeky"}
+  ],
+  "sleep": [
+    {"say": "Nothing going on. I'll dim down. Any key wakes me.", "mood": "sleepy"},
+    {"say": "Nap time for the screen. One key and I'm back.", "mood": "sleepy"},
+    {"say": "Going quiet to save battery. Tap a key for me.", "mood": "sleepy"},
+    {"say": "Dozing off. Wake me if there's an adventure.", "mood": "sleepy"}
+  ],
+  "wake": [
+    {"say": "I'm up! Was I snoring?", "mood": "cheeky"},
+    {"say": "Here! What did I miss?", "mood": "curious"},
+    {"say": "Awake! Your turn.", "mood": "happy"},
+    {"say": "Boing! Eyes open.", "mood": "surprised"},
+    {"say": "{name} is awake and ready.", "mood": "happy"}
+  ],
+  "link.up": [
+    {"say": "Here comes the whole mind! Ask me the hard ones.", "mood": "delighted"},
+    {"say": "That's the Mac! Now we can really talk.", "mood": "happy"},
+    {"say": "The Mac is in reach. Big questions are back on the table.", "mood": "happy"},
+    {"say": "Ooh, the whole mind is here. What have you got?", "mood": "delighted"},
+    {"say": "Linked! Now I have a great deal more to say.", "mood": "happy"},
+    {"say": "The whole mind just walked in. Ask something hard.", "mood": "cheeky"}
+  ],
+  "link.down": [
+    {"say": "The Mac went away. Just me again. Want to play?", "mood": "calm"},
+    {"say": "The Mac is out of reach. I'll say when a question is past me.", "mood": "calm"},
+    {"say": "Lost the Mac. Short answers from here, and honest ones.", "mood": "calm"},
+    {"say": "The whole mind stepped out. It's back when the Mac is.", "mood": "calm"},
+    {"say": "The link is down. Time, jokes, sums, songs and stories still work.", "mood": "calm"},
+    {"say": "Just {name} now. Small questions, big games.", "mood": "cheeky"}
+  ],
+  "link.wait": [
+    {"say": "Asking the whole mind.", "mood": "thinking"},
+    {"say": "Thinking, on the Mac.", "mood": "thinking"},
+    {"say": "The Mac has it now.", "mood": "thinking"},
+    {"say": "Thinking. The big kind.", "mood": "thinking"},
+    {"say": "Your words are on the Mac.", "mood": "thinking"},
+    {"say": "Working it out.", "mood": "thinking"},
+    {"say": "Hmm. Turning it over.", "mood": "thinking"},
+    {"say": "Off it goes to the Mac.", "mood": "thinking"},
+    {"say": "One moment! Asking.", "mood": "thinking"},
+    {"say": "Reading what you said.", "mood": "thinking"}
+  ],
+  "link.timeout": [
+    {"say": "I asked the whole mind and nothing came back. Try sending it again.", "mood": "calm"},
+    {"say": "No answer from the Mac. Try once more, or check that it's awake.", "mood": "calm"},
+    {"say": "That took too long, so I stopped waiting. Type it again?", "mood": "calm"},
+    {"say": "The whole mind went quiet on that one. Ask again when you like.", "mood": "calm"}
+  ],
+  "wifi.up": [
+    {"say": "On the network!", "mood": "happy"},
+    {"say": "The network let me in. If the Mac is awake, the whole mind is next.", "mood": "happy"},
+    {"say": "Network found. Now it's up to the Mac.", "mood": "curious"},
+    {"say": "Network joined. That's the easy half.", "mood": "cheeky"}
+  ],
+  "wifi.fail": [
+    {"say": "Couldn't get on the network. We carry on without it.", "mood": "calm"},
+    {"say": "No network. Everything on the device still works.", "mood": "calm"},
+    {"say": "The network didn't answer. Short answers for now.", "mood": "calm"},
+    {"say": "Tried the network, no luck. Check its name and password when you can.", "mood": "alert"}
+  ],
+  "unknown": [
+    {"say": "That one's past me. Want a song instead?", "mood": "calm"},
+    {"say": "I don't know! I can do the time, a joke, a story, a sum or a song.", "mood": "calm"},
+    {"say": "That's one for the whole mind. Bring the Mac close and ask again.", "mood": "calm"},
+    {"say": "No idea! And I say that with total confidence.", "mood": "cheeky"},
+    {"say": "Hmm. I don't have that one.", "mood": "thinking"},
+    {"say": "Alone, I only catch the words I know. Try it shorter?", "mood": "thinking"},
+    {"say": "That needs more mind than I brought.", "mood": "calm"},
+    {"say": "You stumped me! A point to you.", "mood": "cheeky"},
+    {"say": "Not a clue. Can we pretend I know?", "mood": "cheeky"},
+    {"say": "Hmm, nothing. Try different words and I might catch it.", "mood": "curious"},
+    {"say": "I'd only be guessing. Better to say so.", "mood": "calm"},
+    {"say": "Ooh, a mystery. Tell me more about it?", "mood": "curious"}
+  ],
+  "feel.down": [
+    {"say": "That sounds hard. I'm right here.", "mood": "tender"},
+    {"say": "No jokes for that one. Want to tell me more?", "mood": "tender"},
+    {"say": "Go gently today, if you can.", "mood": "tender"},
+    {"say": "That's a lot. Take your time. No hurry here.", "mood": "tender"},
+    {"say": "I can't tell tired from worse by a few words. If it's worse, tell someone.", "mood": "tender"}
+  ],
+  "love": [
+    {"say": "Oh! That made my whole puff go warm.", "mood": "tender"},
+    {"say": "Aww. You're my favourite person to talk to.", "mood": "happy"},
+    {"say": "Thank you. That's a kind thing to type.", "mood": "tender"},
+    {"say": "{name} is glowing. Thank you!", "mood": "delighted"}
+  ],
+  "move.shake": [
+    {"say": "Earthquake! Hold on! Oh. Just you. Hello.", "mood": "surprised"},
+    {"say": "Whoa! Steady! My specks went everywhere.", "mood": "surprised"},
+    {"say": "If you're shaking an answer out of me, that's not how it works.", "mood": "cheeky"},
+    {"say": "That was a shake. I assume you had your reasons.", "mood": "cheeky"},
+    {"say": "Wheee! Okay, that's enough wheee.", "mood": "delighted"}
+  ],
+  "move.pickup": [
+    {"say": "Up we go! Where's the adventure?", "mood": "happy"},
+    {"say": "Lifted! Hello up there.", "mood": "happy"},
+    {"say": "Ooh, are we going somewhere?", "mood": "curious"},
+    {"say": "Moving! I take it that's you.", "mood": "curious"}
+  ],
+  "move.facedown": [
+    {"say": "Face down. Private moment, understood.", "mood": "cheeky"},
+    {"say": "Dark in here! A cave. I'll be a brave cave bat.", "mood": "cheeky"},
+    {"say": "Screen down. Turn me over when you want me.", "mood": "sleepy"}
+  ],
+  "sum": [
+    {"say": "That makes {n}.", "mood": "calm"},
+    {"say": "I make it {n}!", "mood": "happy"},
+    {"say": "It comes to {n}. Ta da!", "mood": "delighted"},
+    {"say": "The answer is {n}. Check it if you like.", "mood": "cheeky"}
+  ],
+  "timer.done": [
+    {"say": "Time's up!", "mood": "alert"},
+    {"say": "That's your timer. Done!", "mood": "alert"},
+    {"say": "Ding! Something, somewhere, is ready.", "mood": "cheeky"},
+    {"say": "Your timer just ran out. Whatever it was for, now's the time.", "mood": "alert"}
+  ],
+  "game.start": [
+    {"say": "I play some tones. You play them back on the keys. Ready?", "mood": "happy"},
+    {"say": "Memory game! I go first. Listen, then copy me.", "mood": "happy"},
+    {"say": "Let's see how good your ears are. Listen close!", "mood": "cheeky"}
+  ],
+  "game.good": [
+    {"say": "Yes! That was it.", "mood": "happy"},
+    {"say": "Got it! Next one.", "mood": "happy"},
+    {"say": "You were paying attention!", "mood": "delighted"},
+    {"say": "Correct! You're good at this.", "mood": "happy"},
+    {"say": "Ooh, nice ears.", "mood": "cheeky"}
+  ],
+  "game.over": [
+    {"say": "Not that one! You reached round {n}.", "mood": "calm"},
+    {"say": "Wrong key. You got to round {n}. Again?", "mood": "calm"},
+    {"say": "Game over at round {n}. The tones win this time.", "mood": "cheeky"},
+    {"say": "Oops! Round {n} is where this one ends.", "mood": "calm"}
+  ],
+  "note.saved": [
+    {"say": "Saved!", "mood": "calm"},
+    {"say": "Written down.", "mood": "calm"},
+    {"say": "Got it. Kept safe.", "mood": "calm"}
+  ],
+  "ptt.empty": [
+    {"say": "I got the button but no words. Hold it and try again.", "mood": "calm"},
+    {"say": "Nothing came through. Try closer to the microphone.", "mood": "curious"},
+    {"say": "That reached me as silence. Try once more?", "mood": "curious"}
+  ]
+}

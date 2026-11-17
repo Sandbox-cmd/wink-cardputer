@@ -1,0 +1,18 @@
+# secrets and logs
+bridge/pair.json
+bridge/*.log
+bridge/last-heard.wav
+bridge/voice.json
+# made locally
+bridge/node_modules/
+bridge/models/
+bridge/voice-cache/
+bridge/voice.pak
+firmware/.pio/
+train/.venv/
+train/data/
+train/runs/
+train/wn
+**/scratch/
+**/__pycache__/
+.DS_Store

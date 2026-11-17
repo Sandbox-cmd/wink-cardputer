@@ -1,0 +1,3 @@
+#!/bin/sh
+# Shorthand for the cable tool: tools/dev cmd:sys shot:screen.png
+exec "$HOME/.platformio/penv/bin/python" "$(dirname "$0")/dev.py" "$@"

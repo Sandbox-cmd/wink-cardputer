@@ -1,0 +1,10 @@
+{
+  "name": "wink-mind",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Lets a Claude Code session speak through the Cardputer: the whole mind behind Ace.",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.0"
+  }
+}

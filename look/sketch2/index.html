@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wink creatures</title>
+<style>
+  :root { --bg: #15100f; --ink: #efe3d8; --dim: #9c8a80; --btn: #2a1f1c; --line: #45332e; --on: #6b3a2c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--ink); font: 14px/1.45 -apple-system, system-ui, sans-serif; }
+  h1 { font-size: 15px; font-weight: 600; margin: 0 0 10px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; align-items: center; }
+  .row span { color: var(--dim); font-size: 12px; margin-right: 4px; min-width: 52px; }
+  button { background: var(--btn); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+  button.on { background: var(--on); border-color: #a2573f; }
+  canvas { image-rendering: pixelated; display: block; width: 960px; height: 540px; max-width: 100%; height: auto; aspect-ratio: 240 / 135; border-radius: 10px; }
+  #wrap { width: 960px; max-width: 100%; }
+  .note { color: var(--dim); font-size: 12px; margin-top: 6px; }
+  #readout { font: 12px ui-monospace, Menlo, monospace; color: var(--dim); margin-top: 4px; }
+  body.bare { padding: 0; } body.bare h1, body.bare .row, body.bare .note, body.bare #readout { display: none; } body.bare canvas { width: 480px; border-radius: 0; }
+</style>
+</head>
+<body>
+<div id="wrap">
+<h1>Wink: three creatures (240 × 135, shown at 4×, 30 frames a second, 16-bit colour)</h1>
+<div class="row" id="dirs"><span>creature</span></div>
+<canvas id="c" width="240" height="135"></canvas>
+<div id="readout"></div>
+<div class="row" id="acts"><span>do</span></div>
+<div class="row" id="body"><span>body</span></div>
+<div class="row" id="moods"><span>mood</span></div>
+<div class="note">Type on your keyboard to talk to it; Enter sends, and it thinks and then hums an answer (or, with the whole mind here, speaks it). Arrow keys tilt it. Left alone for a while, its thoughts drift by as small text. The mind-driven parts run on 1,800 real pieces from Wink's own network (look/sketch/mind-states.js).</div>
+</div>
+<script src="../sketch/mind-states.js"></script>
+<script src="lines.js"></script>
+<script>
+'use strict';
+window.onerror = (m, s, l) => { document.documentElement.dataset.err = m + ' @' + l; };
+const W = 240, H = 135;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const IMG = ctx.createImageData(W, H), D = IMG.data;
+const Q = new URLSearchParams(location.search);
+if (Q.get('bare')) document.body.classList.add('bare');
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v, mix = (a, b, k) => a + (b - a) * k;
+const rand = (a, b) => a + Math.random() * (b - a);
+const TAU = Math.PI * 2;
+
+// ---------------- pixels ----------------
+function fill(r, g, b) { for (let i = 0; i < W * H * 4; i += 4) { D[i] = r; D[i + 1] = g; D[i + 2] = b; D[i + 3] = 255; } }
+function blend(x, y, r, g, b, a) {
+  x |= 0; y |= 0; if (x < 0 || y < 0 || x >= W || y >= H || a <= 0) return; if (a > 1) a = 1;
+  const i = (y * W + x) * 4; D[i] += (r - D[i]) * a; D[i + 1] += (g - D[i + 1]) * a; D[i + 2] += (b - D[i + 2]) * a;
+}
+function addp(x, y, r, g, b, a) { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= W || y >= H) return; const i = (y * W + x) * 4; D[i] = Math.min(255, D[i] + r * a); D[i + 1] = Math.min(255, D[i + 1] + g * a); D[i + 2] = Math.min(255, D[i + 2] + b * a); }
+function disc(cx, cy, rad, r, g, b, a = 1) {
+  for (let y = Math.floor(cy - rad - 1); y <= cy + rad + 1; y++) for (let x = Math.floor(cx - rad - 1); x <= cx + rad + 1; x++) {
+    const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) - rad; if (d < 0.5) blend(x, y, r, g, b, a * clamp(0.5 - d, 0, 1));
+  }
+}
+function ellipse(cx, cy, rx, ry, r, g, b, a = 1) {
+  for (let y = Math.floor(cy - ry - 1); y <= cy + ry + 1; y++) for (let x = Math.floor(cx - rx - 1); x <= cx + rx + 1; x++) {
+    const nx = (x + 0.5 - cx) / rx, ny = (y + 0.5 - cy) / ry, d = (Math.sqrt(nx * nx + ny * ny) - 1) * Math.min(rx, ry);
+    if (d < 0.5) blend(x, y, r, g, b, a * clamp(0.5 - d, 0, 1));
+  }
+}
+function seg(x0, y0, x1, y1, w, r, g, b, a = 1) { const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 1.5)); for (let j = 0; j <= n; j++) disc(mix(x0, x1, j / n), mix(y0, y1, j / n), w / 2, r, g, b, a); }
+function present() { for (let i = 0; i < W * H * 4; i += 4) { D[i] &= 0xF8; D[i + 1] &= 0xFC; D[i + 2] &= 0xF8; } ctx.putImageData(IMG, 0, 0); }
+
+// ---------------- the mind (real states) ----------------
+const MS = window.MIND, U = MS.H, NS = MS.steps;
+const RAW = (() => { const b = atob(MS.h), a = new Int8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = (b.charCodeAt(i) << 24) >> 24; return a; })();
+const hAt = (k, i) => RAW[(k % NS) * U + i] / 127;
+const MIND = (() => {
+  const mean = new Float32Array(U), e8 = new Float32Array(U), v8 = new Float32Array(U);
+  for (let s = 0; s < NS; s++) for (let i = 0; i < U; i++) mean[i] += hAt(s, i) / NS;
+  const X = [];
+  for (let s = 0; s < NS; s++) { for (let i = 0; i < U; i++) { e8[i] += (hAt(s, i) - e8[i]) / 8; if (s > 30) v8[i] += (e8[i] - mean[i]) ** 2; } if (s > 30 && s % 6 === 0) X.push(Float32Array.from(e8, (v, i) => v - mean[i])); }
+  const sd8 = v8.map(v => Math.sqrt(v / (NS - 31)) + 1e-4);
+  const pcs = [];
+  for (let k = 0; k < 2; k++) {
+    let v = Float32Array.from({ length: U }, (_, i) => Math.sin(i * (k + 1.7)));
+    for (let it = 0; it < 25; it++) {
+      const w = new Float32Array(U);
+      for (const x of X) { let d = 0; for (let i = 0; i < U; i++) d += x[i] * v[i]; for (let i = 0; i < U; i++) w[i] += d * x[i]; }
+      for (const p of pcs) { let d = 0; for (let i = 0; i < U; i++) d += w[i] * p[i]; for (let i = 0; i < U; i++) w[i] -= d * p[i]; }
+      let n = 0; for (let i = 0; i < U; i++) n += w[i] * w[i]; n = Math.sqrt(n); for (let i = 0; i < U; i++) v[i] = w[i] / n;
+    }
+    let ss = 0; for (const x of X) { let d = 0; for (let i = 0; i < U; i++) d += x[i] * v[i]; ss += d * d; }
+    pcs.push(v); v.sd = Math.sqrt(ss / X.length);
+  }
+  const order = [...Array(U).keys()].sort((a, b) => Math.atan2(pcs[1][a], pcs[0][a]) - Math.atan2(pcs[1][b], pcs[0][b]));
+  const ent = [...MS.ent].sort((a, b) => a - b), E10 = ent[Math.floor(ent.length * 0.1)], E90 = ent[Math.floor(ent.length * 0.9)];
+  const m = { mean, sd8, pcs, order, k: 200, phrase: Float32Array.from(mean), quiet: 0, restless: 0, effort: 0, pc: [0, 0], pieces: 0, listeners: [] };
+  m.dev = (u) => clamp((m.phrase[u] - mean[u]) / (1.5 * sd8[u]), -1, 1);
+  m.piece = (src) => {
+    m.k++; m.pieces++; m.quiet = 0;
+    for (let i = 0; i < U; i++) m.phrase[i] += (hAt(m.k, i) - m.phrase[i]) / 8;
+    m.effort = clamp((MS.ent[m.k % NS] - E10) / (E90 - E10), 0, 1);
+    for (const f of m.listeners) f(src, m.effort);
+  };
+  m.update = (dt) => {
+    m.quiet += dt;
+    // measured: with nothing new, the state settles; here the phrase relaxes to the model's mean over ~3 s
+    if (m.quiet > 0.4) { const k = 1 - Math.exp(-dt / 3); for (let i = 0; i < U; i++) m.phrase[i] += (mean[i] - m.phrase[i]) * k; }
+    let s = 0; for (let i = 0; i < U; i += 2) { const d = (m.phrase[i] - mean[i]) / (1.5 * sd8[i]); s += d * d; }
+    m.restless += (clamp(Math.sqrt(s / (U / 2)) * 1.4, 0, 1) - m.restless) * Math.min(1, dt * 4);
+    for (let k = 0; k < 2; k++) { let d = 0; const p = pcs[k]; for (let i = 0; i < U; i++) d += (m.phrase[i] - mean[i]) * p[i]; m.pc[k] = clamp(d / (p.sd * 2), -1, 1); }
+  };
+  return m;
+})();
+
+// ---------------- expression (kept from the device's face.cpp) ----------------
+//            w   h   r  lidT  slope lidB  asym curve mw open  gx    gy  energy tint
+const SH = {
+  calm:      [19, 23, 10, 0.05, 0.00, 0.00, 0.00, 0.34, 17, 0.00, 0.0, 0.0, 0.50, 232, 124, 88],
+  pleased:   [19, 22, 10, 0.00, 0.00, 0.32, 0.00, 0.72, 18, 0.00, 0.0, 0.0, 0.70, 242, 142, 78],
+  delighted: [20, 21, 10, 0.00, 0.00, 0.56, 0.00, 1.00, 20, 0.30, 0.0, -0.1, 1.00, 252, 172, 70],
+  curious:   [18, 23, 10, 0.04, 0.08, 0.00, 0.20, 0.10, 7, 0.22, 0.35, -0.25, 0.80, 236, 142, 110],
+  thinking:  [18, 21, 10, 0.24, 0.00, 0.00, 0.10, 0.00, 9, 0.00, -0.65, -0.75, 1.20, 222, 132, 122],
+  sleepy:    [19, 19, 9, 0.58, -0.05, 0.00, 0.00, 0.05, 11, 0.00, 0.0, 0.3, 0.20, 176, 112, 132],
+  surprised: [20, 26, 12, 0.00, 0.00, 0.00, 0.00, 0.00, 8, 0.75, 0.0, 0.0, 1.10, 255, 176, 124],
+  low:       [18, 22, 10, 0.24, -0.34, 0.00, 0.00, -0.62, 13, 0.00, 0.0, 0.45, 0.25, 150, 140, 190],
+  cheeky:    [19, 22, 10, 0.10, 0.10, 0.22, -0.16, 0.70, 17, 0.00, 0.3, 0.0, 0.80, 246, 132, 92],
+  tender:    [19, 22, 11, 0.08, -0.15, 0.20, 0.00, 0.46, 13, 0.00, 0.0, 0.1, 0.40, 242, 132, 124],
+  alert:     [20, 25, 11, 0.00, 0.10, 0.00, 0.00, 0.00, 12, 0.00, 0.0, 0.0, 1.00, 255, 204, 164],
+  dizzy:     [18, 20, 9, 0.38, 0.12, 0.10, 0.25, 0.20, 12, 0.10, 0.0, 0.0, 0.60, 236, 130, 110],
+  asleep:    [19, 20, 9, 0.93, 0.00, 0.00, 0.00, 0.15, 9, 0.00, 0.0, 0.3, 0.08, 170, 105, 140],
+};
+const KEYS = ['w', 'h', 'r', 'lid', 'slope', 'bot', 'asym', 'curve', 'mw', 'open', 'gx', 'gy', 'en', 'tr', 'tg', 'tb'];
+const cur = {}; KEYS.forEach((k, i) => cur[k] = SH.calm[i]);
+function sdRound(px, py, w, h, r) { const qx = Math.abs(px) - (w - r), qy = Math.abs(py) - (h - r); return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r; }
+function eyeDist(e, px, py) {
+  let d = sdRound(px, py, e.w, e.h, e.r);
+  const lidY = -e.h + e.lid * 2 * e.h + e.slope * px; d = Math.max(d, lidY - py);
+  if (e.bot > 0.01) { const R = e.w * 1.7, ccy = e.h + R - e.bot * 2 * e.h, dy = py - ccy; d = Math.max(d, R - Math.sqrt(px * px + dy * dy)); }
+  return d;
+}
+// two eyes and a mouth for a creature: centre, scale, spacing, squash
+function face(cx, cy, s, spacing, sx = 1, sy = 1, rot = 0) {
+  const blink = E.blinkAmt, gx = E.gaze[0], gy = E.gaze[1];
+  const eyes = [];
+  for (let i = 0; i < 2; i++) {
+    const side = i ? 1 : -1, grow = 1 + cur.asym * (i ? 1 : -0.6);
+    let lid = cur.lid; if (cur.asym < 0 && i === 1) lid += -cur.asym * 1.6;
+    const e = { w: cur.w * s * sx * (1 + 0.07 * gx * side), h: cur.h * s * sy * grow, r: cur.r * s, lid: Math.min(0.93, Math.max(lid, blink)), slope: cur.slope * (i ? -1 : 1), bot: cur.bot * (1 - blink * 0.6) };
+    e.r = Math.min(e.r, e.w, e.h);
+    const ox = side * spacing * sx + gx * 9 * s, oy = gy * 6 * s;
+    e.cx = cx + ox * Math.cos(rot) - oy * Math.sin(rot); e.cy = cy + ox * Math.sin(rot) + oy * Math.cos(rot);
+    eyes.push(e);
+  }
+  const mo = 37 * s * sy;
+  const mouth = { x: cx + gx * 5 * s - mo * Math.sin(rot), y: cy + gy * 3 * s + mo * Math.cos(rot), mw: cur.mw * s * sx * (1 - 0.3 * Math.min(1, E.env * 1.5)), curve: cur.curve, open: cur.open * 6.5 * s + (E.humming && E.speakingMac ? E.env * 8 * s : 0), s };
+  return { eyes, mouth };
+}
+function mouthDist(m, px, py, thick) {
+  const mx = px - m.x, my = py - m.y;
+  if (m.open > 1.6) { const nx = mx / (m.mw * 0.62 + 2), ny = my / (m.open + 1.5); return (Math.hypot(nx, ny) - 1) * (m.open + 1.5); }
+  const k = mx / Math.max(1, m.mw), hum = E.humming && !E.speakingMac ? E.env : 0;
+  const yy = m.curve * 8.5 * m.s * (1 - 2 * k * k) + hum * 1.2 * Math.sin(k * 9 + E.t * 30);
+  let d = Math.abs(my - yy) - thick; const over = Math.abs(mx) - m.mw;
+  if (over > 0) d = d > 0 ? Math.hypot(d, over) : over; return d;
+}
+
+// ---------------- the world: what happens to it ----------------
+const E = {
+  t: 0, dir: Q.get('dir') || 'mochi', mood: 'calm', flash: null, flashUntil: 0,
+  tilt: 0, tiltS: 0, held: 0, heldEnd: 0, shake: 0, loudT: -9, sleepy: 0, asleep: false, sleepT: 0, wakeT: -9,
+  whole: false, wholeAmt: 0, typed: '', typingT: -9, think: 0, hum: null, humming: false, speakingMac: false, env: 0, answer: '', answerUntil: 0,
+  thoughts: [], nextThought: 7, lastAct: 0, gaze: [0, 0], gazeT: [0, 0], nextSacc: 0, blinkT: -1, nextBlink: 2, blinkAmt: 0, bandH: 0, cursorX: 8,
+};
+function act() { E.lastAct = E.t; if (E.asleep) wake(); }
+function moodName() {
+  if (E.asleep) return 'asleep';
+  if (E.flash && E.t < E.flashUntil) return E.flash;
+  if (E.sleepy > 0.5) return 'sleepy';
+  if (E.think > 0) return 'thinking';
+  return E.mood;
+}
+function flash(m, s) { E.flash = m; E.flashUntil = E.t + s; }
+function typeKey(ch) {
+  act(); E.typingT = E.t; E.answer = '';
+  if (ch === '\b') E.typed = E.typed.slice(0, -1);
+  else if (ch === '\n') { if (E.typed.trim()) { E.question = E.typed; E.typed = ''; startThink(1.2, true); } return; }
+  else if (E.typed.length < 34) { E.typed += ch; if (ch === ' ') MIND.piece('you'); }
+}
+function startThink(sec, thenAnswer) { act(); E.think = sec; E.thenAnswer = !!thenAnswer; }
+function startHum() {
+  act(); const L = window.LINES, pool = L.answers;
+  const text = pool[Math.floor(Math.random() * pool.length)];
+  E.hum = { text, t: 0, dur: 0.9 + text.length * 0.062, mac: E.whole }; E.humming = true; E.speakingMac = E.whole; E.answer = text;
+}
+function tilt(v) { act(); E.tilt = clamp(v, -0.9, 0.9); }
+function pickUp() { act(); E.held = 1; E.heldEnd = E.t + 2.8; flash('alert', 2.8); C.event && C.event('pickup'); }
+function shake() { act(); E.shake = 1.3; flash('surprised', 1.3); E.dizzyAt = E.t + 1.3; C.event && C.event('shake'); }
+function loud() { act(); E.loudT = E.t; flash('surprised', 1.4); C.event && C.event('loud'); }
+function sleep() { E.sleepy = 1; E.sleepT = E.t; }
+function wake() { E.asleep = false; E.sleepy = 0; E.wakeT = E.t; flash('delighted', 1.2); C.event && C.event('wake'); }
+function toggleWhole() { act(); E.whole = !E.whole; flash(E.whole ? 'delighted' : 'tender', 2); for (let i = 0; i < 8; i++) setTimeout(() => MIND.piece(E.whole ? 'mac' : 'own'), i * 120); C.event && C.event(E.whole ? 'arrive' : 'leave'); }
+function setMood(m) { act(); E.mood = m; }
+function voiceEnv(t) { return Math.max(0, Math.sin(t * TAU * 4.3)) ** 0.7 * (0.6 + 0.4 * Math.sin(t * 1.3)); }
+
+let pieceAcc = 0;
+function world(dt) {
+  E.t += dt;
+  // ease tilt (the sensor is smoothed on the device too)
+  E.tiltS += (E.tilt - E.tiltS) * Math.min(1, dt * 5);
+  if (E.held && E.t > E.heldEnd) { E.held = 0; C.event && C.event('putdown'); }
+  if (E.shake > 0) E.shake -= dt;
+  if (E.dizzyAt && E.t > E.dizzyAt) { E.dizzyAt = 0; flash('dizzy', 1.8); }
+  // sleep: drowsy after a long quiet (here 45 s) or when asked; asleep 2.5 s later
+  if (!E.asleep && E.t - E.lastAct > 45 && !E.sleepy) sleep();
+  if (E.sleepy && !E.asleep && E.t - E.sleepT > 2.5) { E.asleep = true; }
+  // thinking: a burst of its own pieces, one each 63 ms (measured on the chip)
+  if (E.think > 0) {
+    E.think -= dt; pieceAcc += dt; while (pieceAcc > 0.063) { pieceAcc -= 0.063; MIND.piece('own'); }
+    if (E.think <= 0 && E.thenAnswer) startHum();
+  }
+  if (E.hum) {
+    E.hum.t += dt; E.env = E.hum.t < E.hum.dur - 0.3 ? voiceEnv(E.hum.t) : 0;
+    pieceAcc += dt; while (pieceAcc > 0.33) { pieceAcc -= 0.33; MIND.piece(E.hum.mac ? 'mac' : 'own'); }
+    if (E.hum.t > E.hum.dur) { E.hum = null; E.humming = false; E.answerUntil = E.t + 2.5; }
+  } else E.env *= 0.6;
+  if (E.answer && !E.hum && E.t > E.answerUntil) E.answer = '';
+  E.wholeAmt += ((E.whole ? 1 : 0) - E.wholeAmt) * Math.min(1, dt * 1.5);
+  // thoughts drift by when it is left alone (his choice: "see it think, read it if I look")
+  const idle = E.t - E.lastAct, busy = E.think > 0 || E.hum || E.typed || E.answer;
+  if (!E.asleep && !busy && idle > 6 && E.t > E.nextThought && E.thoughts.length === 0) {
+    const L = window.LINES.muse, text = L[Math.floor(Math.random() * L.length)];
+    const head = C.head(); E.thoughts.push({ text: wrap(text, 24), x: head.x, y: head.y, t: 0, life: 9 });
+    E.nextThought = E.t + rand(14, 22); E.think = 0.8; E.thenAnswer = false;
+  }
+  for (const th of E.thoughts) th.t += dt; E.thoughts = E.thoughts.filter(th => th.t < th.life);
+  // expression
+  const target = SH[moodName()]; const k = 1 - Math.exp(-dt * 9);
+  KEYS.forEach((key, i) => cur[key] += (target[i] - cur[key]) * k);
+  // text band: rows of 12 px + 5 (as home.cpp)
+  const rows = E.answer ? Math.min(3, wrapW(E.answer, 228).length) : E.typed || E.t - E.typingT < 1.5 ? 1 : 0;
+  E.bandH += ((rows ? rows * 12 + 5 : 0) - E.bandH) * Math.min(1, dt * 12);
+  // gaze: the cursor when typing, the mood's place when thinking, else saccades biased by where the mind leans
+  if (E.t - E.typingT < 2.5 && E.typed !== undefined) { const p = C.eyeAt(); E.gazeT = [clamp((E.cursorX - p.x) / 70, -1, 1), 1]; }
+  else if (E.t > E.nextSacc) {
+    if (E.asleep) E.gazeT = [0, 0.3];
+    else if (Math.random() < 0.35) E.gazeT = [cur.gx, cur.gy];
+    else E.gazeT = [clamp(cur.gx + MIND.pc[0] * 0.6 + rand(-0.5, 0.5), -1, 1), clamp(cur.gy + MIND.pc[1] * 0.4 + rand(-0.35, 0.35), -1, 1)];
+    E.nextSacc = E.t + rand(0.9, 3.8) * (1 - 0.5 * MIND.restless);
+  }
+  const gk = 1 - Math.exp(-dt * 16); E.gaze[0] += (E.gazeT[0] - E.gaze[0]) * gk; E.gaze[1] += (E.gazeT[1] - E.gaze[1]) * gk;
+  // blinks
+  if (E.blinkT >= 0) { E.blinkT += dt; if (E.blinkT > 0.24) E.blinkT = -1; }
+  else if (E.t > E.nextBlink && !E.asleep) { E.blinkT = 0; E.nextBlink = E.t + rand(1.6, 5.8) * (cur.lid > 0.4 ? 0.5 : 1); }
+  E.blinkAmt = E.blinkT < 0 ? 0 : E.blinkT < 0.07 ? E.blinkT / 0.07 : E.blinkT < 0.11 ? 1 : 1 - (E.blinkT - 0.11) / 0.13;
+  MIND.update(dt);
+}
+function wrapW(text, maxW, font = '12px Helvetica, Arial, sans-serif') {
+  ctx.font = font; const words = text.split(' '), out = []; let line = '';
+  for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t; }
+  if (line) out.push(line); return out;
+}
+function wrap(text, n) { const words = text.split(' '), out = []; let line = ''; for (const w of words) { if ((line + ' ' + w).trim().length > n && line) { out.push(line); line = w; } else line = (line + ' ' + w).trim(); } if (line) out.push(line); return out; }
+function floorY() { return H - E.bandH - 2; }
+
+// text drawn after the pixels (the device draws its font into the same frame)
+function drawText(st) {
+  const top = H - E.bandH;
+  if (E.bandH > 1) { ctx.fillStyle = st.band; ctx.fillRect(0, Math.round(top), W, H); }
+  ctx.textBaseline = 'top';
+  if (E.answer) {
+    ctx.font = '12px Helvetica, Arial, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = st.ink;
+    const lines = wrapW(E.answer, 228).slice(0, 3); lines.forEach((l, j) => ctx.fillText(l, W / 2, top + 3 + j * 12));
+  } else if (E.typed || E.t - E.typingT < 1.5) {
+    ctx.font = '12px Helvetica, Arial, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = st.you;
+    const s = '> ' + E.typed; ctx.fillText(s, 6, top + 3); E.cursorX = 6 + ctx.measureText(s).width;
+    if ((E.t * 2 | 0) % 2 === 0) ctx.fillRect(E.cursorX + 1, top + 3, 1, 11);
+  }
+  for (const th of E.thoughts) {
+    const a = Math.min(1, th.t / 1.2, (th.life - th.t) / 2) * st.thoughtA;
+    ctx.globalAlpha = Math.max(0, a); ctx.font = '9px Helvetica, Arial, sans-serif'; ctx.fillStyle = st.thought; ctx.textAlign = 'center';
+    const lines = th.text; let x = clamp(th.x + th.t * 2, 52, W - 52), y0 = th.y - 8 - th.t * 3 - lines.length * 10;
+    if (y0 < 2) { x = th.x < W / 2 ? clamp(th.x + 78, 52, W - 52) : clamp(th.x - 78, 52, W - 52); y0 = clamp(th.y - th.t * 3, 2, H - E.bandH - lines.length * 10 - 2); }
+    lines.forEach((l, j) => ctx.fillText(l, x, y0 + j * 10));
+    ctx.globalAlpha = 1;
+  }
+  if (E.asleep) {
+    ctx.font = '9px Helvetica, Arial, sans-serif'; ctx.fillStyle = st.z; const h = C.head();
+    for (let i = 0; i < 3; i++) { const p = (E.t * 0.3 + i / 3) % 1; ctx.globalAlpha = 1 - p; ctx.font = (p < 0.5 ? 8 : 11) + 'px Helvetica'; ctx.fillText('z', h.x + 10 + p * 20, h.y - 4 - p * 26); }
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ======================================================================
+// 1. MOCHI: the dot face grown a soft body
+// ======================================================================
+function makeMochi() {
+  const N = 28, P = [], PV = [], REST = [];
+  let pal = [], palKey = '';
+  const bubbles = [];
+  let nextHop = 3, cx0 = 120;
+  function buildPal() {
+    const key = (cur.tr | 0) + ',' + (cur.tg | 0) + ',' + (cur.tb | 0); if (key === palKey) return; palKey = key; pal = [];
+    for (let i = 0; i < 64; i++) { const v = i / 63; let r, g, b; if (v < 0.38) { const k = 0.2 + v / 0.38 * 0.8; r = mix(18, cur.tr, k); g = mix(12, cur.tg, k); b = mix(12, cur.tb, k); } else { const k = (v - 0.38) / 0.62; r = mix(cur.tr, 255, k); g = mix(cur.tg, 240, k); b = mix(cur.tb, 226, k); } pal.push([r, g, b]); }
+  }
+  function restShape() {
+    let rx = 46, ry = 33;
+    const sl = E.asleep ? 1 : E.sleepy * 0.5; rx = mix(rx, 56, sl); ry = mix(ry, 22, sl);
+    if (E.bandH > 20) { const k = clamp((E.bandH - 20) / 21, 0, 1); rx *= 1 - 0.14 * k; ry *= 1 - 0.2 * k; }
+    const breath = E.asleep ? 0.05 * Math.sin(E.t * 1.3) : 0.025 * Math.sin(E.t * 1.9);
+    const hum = E.humming ? 0.05 * E.env : 0, low = E.mood === 'low' && !E.asleep ? -0.08 : 0, wakeS = E.t - E.wakeT < 0.7 ? 0.18 * Math.sin((E.t - E.wakeT) / 0.7 * Math.PI) : 0;
+    return [rx * (1 + hum - wakeS * 0.4 - low * 0.4), ry * (1 + breath + hum + low + wakeS)];
+  }
+  function reset() {
+    P.length = 0; PV.length = 0; REST.length = 0;
+    const [rx, ry] = restShape(), fy = floorY();
+    for (let i = 0; i < N; i++) { const a = i / N * TAU; const x = 120 + Math.cos(a) * rx, y = fy - ry + Math.sin(a) * ry; P.push([x, y]); PV.push([x, y]); REST.push([Math.cos(a), Math.sin(a)]); }
+  }
+  function centroid() { let x = 0, y = 0; for (const p of P) { x += p[0]; y += p[1]; } return [x / N, y / N]; }
+  function hop(vx, vy) { const h = 1 / 90; for (let i = 0; i < N; i++) { PV[i][0] = P[i][0] - vx * h; PV[i][1] = P[i][1] - vy * h; } }
+  function kick(i, vx, vy) { const h = 1 / 90; PV[i][0] -= vx * h; PV[i][1] -= vy * h; }
+  MIND.listeners.push((src, eff) => {
+    if (E.dir !== 'mochi') return;
+    const u = MIND.order[MIND.k % U], a = (MIND.order.indexOf(u) / U) * TAU;
+    bubbles.push({ a, r: 0.55, y: 0, life: 1, size: 1.2 + 2.6 * eff, src });
+    if (bubbles.length > 24) bubbles.shift();
+    // a piece is felt in the body: a tiny push where its bubble starts
+    const i = Math.floor(a / TAU * N) % N; kick(i, Math.cos(a) * 14 * eff, Math.sin(a) * 14 * eff);
+  });
+  function update(dt) {
+    const [rx, ry] = restShape(), fy = floorY();
+    const G = 260, gx = Math.sin(E.tiltS) * G, gy = Math.cos(E.tiltS) * G * (E.held ? 0.0 : 1);
+    const subs = 3, h = dt / subs;
+    // behaviour
+    if (!E.asleep && !E.held && E.t > nextHop && E.shake <= 0) {
+      const c = centroid(); let tx = 0;
+      if (E.t - E.typingT < 3) tx = clamp((E.cursorX + 30 - c[0]) * 2.2, -120, 120);
+      else if (Math.random() < 0.4) tx = rand(-80, 80);
+      const e = 0.6 + cur.en * 0.6;
+      hop(tx, -(60 + 70 * e * (E.mood === 'pleased' || E.mood === 'cheeky' ? 1.3 : 1)));
+      nextHop = E.t + rand(2.5, 7) * (1 - 0.6 * MIND.restless) / (0.5 + cur.en);
+    }
+    if (E.t - E.loudT < dt * 1.5) hop(rand(-30, 30), -190);
+    const up = E.held ? Math.sin((E.t - (E.heldEnd - 2.8)) * 2.1) * 0.5 : 0;
+    for (let s = 0; s < subs; s++) {
+      for (let i = 0; i < N; i++) {
+        const p = P[i], q = PV[i], vx = (p[0] - q[0]) * 0.986, vy = (p[1] - q[1]) * 0.986;
+        q[0] = p[0]; q[1] = p[1];
+        let ax = gx, ay = gy;
+        if (E.held) { ax += rand(-60, 60) + Math.sin(E.t * 7) * 30; ay += -6 * up + rand(-50, 50) + (fy - 30 - p[1]) * 3; }
+        if (E.shake > 0) { ax += rand(-2600, 2600); ay += rand(-2600, 1600); }
+        p[0] += vx + ax * h * h; p[1] += vy + ay * h * h;
+      }
+      // shape matching: a jelly that wants its shape back (stiffer when awake and lively)
+      const c = centroid(); let sa = 0, ca = 0;
+      for (let i = 0; i < N; i++) { const qx = REST[i][0] * rx, qy = REST[i][1] * ry, px = P[i][0] - c[0], py = P[i][1] - c[1]; sa += qx * py - qy * px; ca += qx * px + qy * py; }
+      const ang = Math.atan2(sa, ca) * 0.8, co = Math.cos(ang), si = Math.sin(ang), stiff = E.asleep ? 0.06 : 0.11 + 0.05 * cur.en;
+      for (let i = 0; i < N; i++) {
+        const qx = REST[i][0] * rx, qy = REST[i][1] * ry, gxp = c[0] + qx * co - qy * si, gyp = c[1] + qx * si + qy * co;
+        P[i][0] += (gxp - P[i][0]) * stiff; P[i][1] += (gyp - P[i][1]) * stiff;
+        if (E.humming) { P[i][0] += Math.cos(i * 2.4 + E.t * 40) * E.env * 0.12; }
+      }
+      for (let i = 0; i < N; i++) {
+        const p = P[i], q = PV[i];
+        if (p[1] > fy) { p[1] = fy; q[0] = mix(q[0], p[0], 0.35); }
+        if (p[0] < 2) { p[0] = 2; q[1] = mix(q[1], p[1], 0.3); } if (p[0] > W - 2) { p[0] = W - 2; q[1] = mix(q[1], p[1], 0.3); }
+        if (p[1] < 2) p[1] = 2;
+      }
+    }
+    for (const b of bubbles) { b.y += dt * 0.7; b.life -= dt * 0.9; } while (bubbles.length && bubbles[0].life <= 0) bubbles.shift();
+  }
+  const TH = 0.35;
+  function inside(px, py) { let c = false; for (let i = 0, j = N - 1; i < N; j = i++) { const a = P[i], b = P[j]; if ((a[1] > py) !== (b[1] > py) && px < (b[0] - a[0]) * (py - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; }
+  function edgeDist(px, py) { let m = 1e9; for (let i = 0, j = N - 1; i < N; j = i++) { const a = P[j], b = P[i], dx = b[0] - a[0], dy = b[1] - a[1], t = clamp(((px - a[0]) * dx + (py - a[1]) * dy) / (dx * dx + dy * dy), 0, 1); m = Math.min(m, Math.hypot(px - a[0] - t * dx, py - a[1] - t * dy)); } return m; }
+  function bbox() { let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; for (const p of P) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); } return { x0, x1, y0, y1 }; }
+  function draw() {
+    buildPal();
+    fill(16, 11, 11);
+    const c = centroid(), bb = bbox(), [rx, ry] = restShape();
+    const sx = clamp((bb.x1 - bb.x0) / (2 * rx), 0.7, 1.4), sy = clamp((bb.y1 - bb.y0) / (2 * ry), 0.6, 1.4);
+    // body tilt read from the first point's angle vs rest
+    let sa = 0, ca = 0; for (let i = 0; i < N; i++) { const qx = REST[i][0], qy = REST[i][1], px = P[i][0] - c[0], py = P[i][1] - c[1]; sa += qx * py - qy * px; ca += qx * px + qy * py; }
+    const rot = Math.atan2(sa, ca);
+    const sc = clamp(ry / 33, 0.62, 1.05) * 0.62;
+    const F = face(c[0], c[1] - ry * 0.12 * sy, sc, 19 * (rx / 46) * 1.0, sx, sy, rot);
+    const fy = floorY(), whole = E.wholeAmt, fineR = whole * 160;
+    const passes = whole > 0.02 ? [5, 3] : [5];
+    for (const pitch of passes) {
+      const cols = Math.ceil(W / pitch), rows = Math.ceil(H / pitch);
+      for (let gyc = 0; gyc < rows; gyc++) {
+        const py = gyc * pitch + pitch / 2; if (py > H - E.bandH) break;
+        for (let gxc = 0; gxc < cols; gxc++) {
+          const px = gxc * pitch + pitch / 2, dc = Math.hypot(px - c[0], py - c[1]);
+          if (passes.length === 2 && ((pitch === 3) !== (dc < fineR))) continue;
+          let v = 0.03 + (py > fy - 1 ? 0.03 : 0);
+          const ins = px > bb.x0 - 6 && px < bb.x1 + 6 && py > bb.y0 - 6 && py < bb.y1 + 6;
+          if (ins) {
+            const isIn = inside(px, py), ed = edgeDist(px, py);
+            if (isIn) {
+              const lx = (px - c[0]) / rx, ly = (py - c[1]) / ry, light = clamp(0.5 - 0.45 * (lx * 0.55 + ly * 0.85), 0, 1);
+              const u = MIND.order[(gxc * 31 + gyc * 17) % U];
+              v = 0.075 + 0.075 * light + 0.05 * MIND.dev(u) * (0.4 + MIND.restless);
+              if (ed < 4.5) v += 0.2 * (1 - ed / 4.5) * (0.5 + 0.5 * light);
+            } else if (ed < 7) v += 0.07 * (1 - ed / 7);
+            // eyes
+            for (const e of F.eyes) {
+              const ex = px - e.cx, ey = py - e.cy; if (Math.abs(ex) > e.w + 10 || Math.abs(ey) > e.h + 10) continue;
+              const d = eyeDist(e, ex, ey), core = clamp(0.5 - d * (pitch > 4 ? 0.2 : 0.38), 0, 1);
+              v += 0.25 * Math.exp(-Math.max(d, 0) * 0.2) * (1 - core);
+              if (core > 0) { let body = 0.55 + 0.1 * clamp(0.5 - ey / (2 * e.h), 0, 1); const gl = 1 - ((ex + e.w * 0.36) ** 2 + (ey + e.h * 0.4) ** 2) / 20; if (gl > 0) body += gl * 0.45; v = Math.max(v, core * body); }
+            }
+            const md = mouthDist(F.mouth, px, py, pitch > 4 ? 2.2 : 1.5), mcore = clamp(0.5 - md * 0.3, 0, 1) * 0.72;
+            if (md > 0) v += 0.1 * Math.exp(-md * 0.35) * (1 - mcore); v = Math.max(v, mcore);
+            // bubbles of its own pieces rising inside it (a piece read from outside is drawn in that colour later)
+            for (const b of bubbles) { const bx = c[0] + Math.cos(b.a) * rx * b.r * 0.8, by = c[1] + Math.sin(b.a) * ry * b.r * 0.6 - b.y * ry; const bd = Math.abs(Math.hypot(px - bx, py - by) - b.size); if (bd < 1.6) v += 0.22 * b.life * (1 - bd / 1.6); }
+          }
+          v = clamp(v, 0, 1); if (v < 0.04) continue;
+          let s = pitch >= 5 ? (v < 0.12 ? 1 : v < 0.24 ? 2 : v < 0.4 ? 3 : 4) : (v < 0.2 ? 1 : v < 0.46 ? 2 : 3);
+          let col = pal[Math.min(63, (v * 63) | 0)];
+          if (whole > 0.02 && dc < fineR && v > 0.5) col = [mix(col[0], 255, 0.3 * whole), mix(col[1], 237, 0.3 * whole), mix(col[2], 219, 0.3 * whole)];
+          const o = (pitch - s) >> 1, x = gxc * pitch + o, y = gyc * pitch + o;
+          for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) blend(x + i, y + j, col[0], col[1], col[2], 1);
+        }
+      }
+    }
+    // pieces from outside: a fleck in your blue or the Mac's ink rides each bubble
+    for (const b of bubbles) if (b.src !== 'own') { const bx = c[0] + Math.cos(b.a) * rx * b.r * 0.8, by = c[1] + Math.sin(b.a) * ry * b.r * 0.6 - b.y * ry; const k = b.src === 'you' ? [150, 190, 215] : [255, 237, 219]; disc(bx, by, 1.4, k[0], k[1], k[2], b.life); }
+    present();
+    drawText({ band: 'rgb(14,10,10)', ink: 'rgb(255,236,220)', you: 'rgb(150,190,215)', thought: 'rgb(214,140,110)', thoughtA: 0.85, z: 'rgb(200,140,170)' });
+  }
+  return {
+    reset, update, draw,
+    head: () => { const c = centroid(), bb = bbox(); return { x: c[0], y: bb.y0 }; },
+    eyeAt: () => { const c = centroid(); return { x: c[0], y: c[1] }; },
+    event: (k) => { if (k === 'putdown') hop(0, 40); if (k === 'wake') hop(0, -150); if (k === 'arrive') hop(0, -120); },
+  };
+}
+
+// ======================================================================
+// 2. WISP: a puff of motes on warm paper
+// ======================================================================
+function makeWisp() {
+  const N = U, X = new Float32Array(N), Y = new Float32Array(N), VX = new Float32Array(N), VY = new Float32Array(N), HX = new Float32Array(N), HY = new Float32Array(N), PH = new Float32Array(N), UU = new Int32Array(N);
+  const extra = []; // the Mac's motes and your words' motes
+  const pulses = [];
+  const paper = new Uint8Array(W * H * 3);
+  for (let i = 0; i < W * H; i++) { const y = (i / W) | 0, x = i % W; const n = ((x * 73856093) ^ (y * 19349663)) >>> 0, f = (n % 7) - 3, fib = ((x + y * 3) % 23 === 0) ? -4 : 0; paper[i * 3] = 246 + f + fib; paper[i * 3 + 1] = 235 + f + fib; paper[i * 3 + 2] = 220 + f + fib; }
+  const c = { x: 120, y: 52, vx: 0, vy: 0 }, goal = { x: 120, y: 52 };
+  let nextGoal = 2, bristle = 0, rot = 0;
+  for (let i = 0; i < N; i++) { const r = Math.sqrt((i + 0.5) / N), a = i * 2.39996; HX[i] = Math.cos(a) * r; HY[i] = Math.sin(a) * r; PH[i] = rand(0, TAU); UU[i] = MIND.order[i % U]; }
+  function reset() { c.x = 120; c.y = 50; c.vx = c.vy = 0; for (let i = 0; i < N; i++) { X[i] = c.x + HX[i] * 34; Y[i] = c.y + HY[i] * 28; VX[i] = VY[i] = 0; } fill(246, 235, 220); for (let i = 0; i < W * H; i++) { D[i * 4] = paper[i * 3]; D[i * 4 + 1] = paper[i * 3 + 1]; D[i * 4 + 2] = paper[i * 3 + 2]; D[i * 4 + 3] = 255; } }
+  MIND.listeners.push((src, eff) => {
+    if (E.dir !== 'wisp') return;
+    pulses.push({ r: 0, s: 0.4 + 0.6 * eff }); if (pulses.length > 6) pulses.shift();
+    if (src === 'mac') for (let k = 0; k < 2; k++) extra.push({ x: rand(20, 220), y: -2, vx: 0, vy: 30, hx: rand(-1, 1) * 0.8, hy: rand(-1, 1) * 0.8, src, life: 9, ph: rand(0, TAU) });
+    if (src === 'you') for (let k = 0; k < 5; k++) extra.push({ x: E.cursorX, y: H - E.bandH + 4, vx: rand(-20, 20), vy: -40, hx: rand(-1, 1) * 0.7, hy: rand(-1, 1) * 0.7, src, life: 4, ph: rand(0, TAU) });
+    while (extra.length > 160) extra.shift();
+  });
+  function size() { let rx = 34, ry = 28; if (E.asleep) { rx = 40; ry = 15; } else if (E.sleepy) { rx = 37; ry = 22; } if (E.bandH > 20) { rx *= 0.85; ry *= 0.8; } const breath = 1 + (E.asleep ? 0.05 : 0.025) * Math.sin(E.t * (E.asleep ? 1.3 : 1.9)) + (E.humming ? 0.07 * E.env : 0); return [rx * breath * (1 + bristle * 0.4), ry * breath * (1 + bristle * 0.4)]; }
+  function update(dt) {
+    const fy = floorY(), [rx, ry] = size();
+    // where it goes
+    if (E.asleep) { goal.y = fy - ry - 1; }
+    else if (E.t - E.typingT < 3) { goal.x = clamp(E.cursorX + 20, 45, 195); goal.y = fy - ry - 10; }
+    else if (E.think > 0) { goal.y = 34 + ry * 0.3; }
+    else if (E.t > nextGoal) { goal.x = rand(50, 190); goal.y = rand(ry + 6, fy - ry - 8); nextGoal = E.t + rand(4, 9) * (1 - 0.5 * MIND.restless); }
+    if (E.held) { goal.y = fy - ry - 22; }
+    const gxw = Math.sin(E.tiltS) * 90;
+    c.vx += ((goal.x - c.x) * 1.4 - c.vx * 1.8 + gxw) * dt; c.vy += ((goal.y - c.y) * 1.4 - c.vy * 1.8) * dt;
+    if (E.held) { c.vx += rand(-80, 80) * dt; c.vy += rand(-80, 80) * dt; }
+    if (E.shake > 0) { c.vx += rand(-1400, 1400) * dt; c.vy += rand(-900, 900) * dt; }
+    if (E.t - E.loudT < dt * 1.5) { bristle = 1; c.vy -= 40; }
+    bristle *= Math.exp(-dt * 2.2);
+    c.x += c.vx * dt; c.y += c.vy * dt; c.x = clamp(c.x, rx + 2, W - rx - 2); c.y = clamp(c.y, ry + 2, fy - ry);
+    rot += (clamp(c.vx * 0.004, -0.3, 0.3) - rot) * Math.min(1, dt * 4);
+    for (const p of pulses) p.r += dt * 40; while (pulses.length && pulses[0].r > 50) pulses.shift();
+    // motes: each one rides a home in the puff; how far and how fast it swirls is its unit's live deviation
+    const spin = (0.4 + 3 * MIND.restless) * (E.asleep ? 0.2 : 1), K = E.shake > 0 ? 4 : 38, damp = E.shake > 0 ? 1 : 7;
+    const sag = Math.sin(E.tiltS) * 3;
+    for (let i = 0; i < N; i++) {
+      const d = MIND.dev(UU[i]); PH[i] += dt * spin * (d >= 0 ? 1 : -1) * (0.5 + Math.abs(d));
+      const orb = (0.6 + 4.5 * Math.abs(d) * (0.25 + MIND.restless)) * (E.asleep ? 0.3 : 1);
+      const hx = HX[i] * rx, hy = HY[i] * ry, tx = c.x + hx * Math.cos(rot) - hy * Math.sin(rot) + Math.cos(PH[i]) * orb + sag * (1 - HY[i]) * 0.5, ty = c.y + hx * Math.sin(rot) + hy * Math.cos(rot) + Math.sin(PH[i]) * orb;
+      VX[i] += ((tx - X[i]) * K - VX[i] * damp) * dt; VY[i] += ((ty - Y[i]) * K - VY[i] * damp) * dt;
+      if (E.shake > 0) { VX[i] += rand(-900, 900) * dt; VY[i] += rand(-900, 900) * dt; }
+      if (E.t - E.loudT < dt * 1.5) { VX[i] += HX[i] * 140; VY[i] += HY[i] * 140; }
+      if (E.humming) { const mdx = X[i] - c.x, mdy = Y[i] - (c.y + ry * 0.45); const md = Math.hypot(mdx, mdy) + 1; VX[i] += mdx / md * E.env * 40 * dt * Math.sin(md * 0.8 - E.t * 25); VY[i] += mdy / md * E.env * 40 * dt * Math.sin(md * 0.8 - E.t * 25); }
+      X[i] += VX[i] * dt; Y[i] += VY[i] * dt;
+      if (Y[i] > fy) { Y[i] = fy; VY[i] *= -0.3; }
+    }
+    for (const p of extra) {
+      p.life -= dt * (E.whole || p.src === 'you' ? 1 : 3); p.ph += dt * 2;
+      const leaving = p.src === 'mac' && !E.whole;
+      const tx = leaving ? p.x + p.hx * 10 : c.x + p.hx * rx + Math.cos(p.ph) * 2, ty = leaving ? -20 : c.y + p.hy * ry + Math.sin(p.ph) * 2;
+      p.vx += ((tx - p.x) * (leaving ? 2 : 10) - p.vx * 3) * dt; p.vy += ((ty - p.y) * (leaving ? 2 : 10) - p.vy * 3) * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+    }
+    for (let i = extra.length - 1; i >= 0; i--) if (extra[i].life <= 0 || extra[i].y < -15) extra.splice(i, 1);
+  }
+  function draw() {
+    // the paper takes the motes' trails back: fade every pixel toward its own paper colour
+    const k = E.shake > 0 ? 0.18 : 0.3;
+    // in a 16-bit frame a fractional fade stalls short of the paper, and red, green and blue stall at different
+    // places (5, 6 and 5 bits), leaving a green stain; so each step moves a channel by at least one of its own steps
+    const st = (cur, tgt, q) => { const d = tgt - cur; if (d === 0) return cur; let m = d * k; if (Math.abs(m) < q) m = Math.sign(d) * Math.min(Math.abs(d), q); return cur + m; };
+    for (let i = 0; i < W * H; i++) { const j = i * 4; D[j] = st(D[j], paper[i * 3] & 0xF8, 8); D[j + 1] = st(D[j + 1], paper[i * 3 + 1] & 0xFC, 4); D[j + 2] = st(D[j + 2], paper[i * 3 + 2] & 0xF8, 8); }
+    const fy = floorY(), [rx, ry] = size();
+    // its shadow on the floor: smaller and paler the higher it floats (drawn depth)
+    const hgt = clamp((fy - (c.y + ry)) / 60, 0, 1);
+    ellipse(c.x, fy, rx * (0.9 - 0.4 * hgt), 2.6, 205, 180, 160, 0.35 * (1 - hgt * 0.7));
+    // motes
+    const tr = cur.tr, tg = cur.tg, tb = cur.tb;
+    for (let i = 0; i < N; i++) {
+      const rr = Math.hypot(HX[i], HY[i]); let deep = 0.35 + 0.65 * rr;
+      for (const p of pulses) { const dd = Math.abs(rr * 30 - p.r); if (dd < 4) deep -= 0.5 * p.s * (1 - dd / 4); }
+      deep = clamp(deep, 0, 1);
+      const r = mix(150, tr, deep), g = mix(46, tg * 0.95, deep), b = mix(40, tb * 0.9, deep);
+      const a = E.asleep ? 0.7 : 0.9;
+      blend(X[i], Y[i], r, g, b, a); blend(X[i] + 1, Y[i], r, g, b, a * 0.8); blend(X[i], Y[i] + 1, r, g, b, a * 0.8); blend(X[i] + 1, Y[i] + 1, r, g, b, a * 0.6);
+    }
+    for (const p of extra) { const col = p.src === 'you' ? [60, 112, 160] : [112, 72, 150], a = clamp(p.life, 0, 1); blend(p.x, p.y, col[0], col[1], col[2], a); blend(p.x + 1, p.y, col[0], col[1], col[2], a); blend(p.x, p.y + 1, col[0], col[1], col[2], a); blend(p.x + 1, p.y + 1, col[0], col[1], col[2], a); }
+    // face: the dot face's eyes, drawn as dark ink on the warm puff, with a glint
+    const s = 0.5 * clamp(ry / 28, 0.6, 1.05);
+    const F = face(c.x, c.y - ry * 0.18, s, 15 * (rx / 34), 1, 1, rot);
+    for (const e of F.eyes) {
+      for (let y = Math.floor(e.cy - e.h - 2); y <= e.cy + e.h + 2; y++) for (let x = Math.floor(e.cx - e.w - 2); x <= e.cx + e.w + 2; x++) {
+        const ex = x + 0.5 - e.cx, ey = y + 0.5 - e.cy, d = eyeDist(e, ex, ey), cov = clamp(0.5 - d, 0, 1);
+        if (cov > 0) { blend(x, y, 52, 26, 28, cov); const gl = 1 - ((ex + e.w * 0.35) ** 2 + (ey + e.h * 0.4) ** 2) / 4; if (gl > 0 && d < -1) blend(x, y, 255, 248, 238, Math.min(1, gl * 1.6)); }
+      }
+    }
+    const m = F.mouth;
+    for (let y = Math.floor(m.y - 10); y <= m.y + 12; y++) for (let x = Math.floor(m.x - m.mw - 3); x <= m.x + m.mw + 3; x++) { const d = mouthDist(m, x + 0.5, y + 0.5, 0.75); if (d < 0.5) blend(x, y, 70, 30, 30, clamp(0.5 - d, 0, 1)); }
+    present();
+    drawText({ band: 'rgb(236,222,205)', ink: 'rgb(52,38,36)', you: 'rgb(48,98,140)', thought: 'rgb(120,70,58)', thoughtA: 0.8, z: 'rgb(130,90,110)' });
+  }
+  return { reset, update, draw, head: () => ({ x: c.x, y: c.y - size()[1] }), eyeAt: () => ({ x: c.x, y: c.y }), event: () => {} };
+}
+
+// ======================================================================
+// 3. PIP: a small walker with the dot face's glowing eyes
+// ======================================================================
+function makePip() {
+  const p = { x: 120, y: 0, vx: 0, vy: 0, face: 1, rot: 0, vr: 0, onFloor: true, leg: 1, phase: 0, lift: 0 };
+  const tuft = { x: 120, y: 60, vx: 0, vy: 0 }, sparks = [];
+  let state = 'idle', until = 2, target = 120, flashT = 0, flashCol = [255, 236, 220], squash = 0, moonY = 160;
+  const sky = new Uint8Array(H * 3);
+  function buildSky(fy) { for (let y = 0; y < H; y++) { const k = clamp(y / Math.max(30, fy), 0, 1), kk = k * k; sky[y * 3] = mix(92, 236, kk); sky[y * 3 + 1] = mix(58, 156, kk); sky[y * 3 + 2] = mix(84, 118, kk); } }
+  function reset() { p.x = 120; p.vx = p.vy = 0; p.rot = 0; p.y = floorY(); state = 'idle'; until = E.t + 2; tuft.x = p.x; tuft.y = p.y - 40; }
+  MIND.listeners.push((src, eff) => {
+    if (E.dir !== 'pip') return;
+    flashT = 0.25 + 0.5 * eff; flashCol = src === 'you' ? [150, 190, 215] : src === 'mac' ? [255, 240, 225] : [255, 196, 150];
+    tuft.vy -= 40 * (0.4 + eff); tuft.vx += rand(-20, 20);
+    if (src !== 'own' || Math.random() < 0.35) sparks.push({ x: tuft.x, y: tuft.y, vx: rand(-8, 8), vy: rand(-22, -12), life: 1, col: flashCol });
+    if (sparks.length > 30) sparks.shift();
+  });
+  const legLen = () => (E.asleep ? 0 : E.sleepy ? 4 : 9) * (1 - squash * 0.4);
+  function bodyC() { const ry = bodyR()[1]; return { x: p.x, y: p.y - legLen() - ry * 0.92 + Math.sin(p.phase * 2) * (state === 'walk' ? 0.8 : 0) + (E.asleep ? 0 : 0.4 * Math.sin(E.t * 1.9)) }; }
+  function bodyR() { let rx = 20, ry = 18; if (E.asleep) { rx = 23; ry = 14 * (1 + 0.04 * Math.sin(E.t * 1.3)); } if (E.mood === 'low' && !E.asleep) ry *= 0.92; if (E.humming) { rx *= 1 + 0.05 * E.env; ry *= 1 + 0.05 * E.env; } return [rx * (1 + squash * 0.25), ry * (1 - squash * 0.3)]; }
+  function update(dt) {
+    const fy = floorY(); buildSky(fy);
+    const g = 300, slope = Math.sin(E.tiltS);
+    // behaviour
+    if (E.held) state = 'held';
+    else if (E.shake > 0) state = 'tumble';
+    else if (state === 'held' || state === 'tumble') { state = 'idle'; until = E.t + 1.5; p.onFloor = false; }
+    else if (E.asleep || E.sleepy) state = 'sleep';
+    else if (E.t - E.typingT < 3) { state = 'attend'; target = clamp(E.cursorX + 22, 24, W - 24); }
+    else if (E.think > 0) state = 'think';
+    else if (E.humming) state = 'hum';
+    else if (state === 'sleep' || state === 'attend' || state === 'think' || state === 'hum') { state = 'idle'; until = E.t + rand(1, 3); }
+    if (state === 'idle' && E.t > until) {
+      const r = Math.random(), lively = 0.3 + MIND.restless * 0.6 + cur.en * 0.3;
+      if (r < lively) { state = 'walk'; target = clamp(p.x + rand(-110, 110), 22, W - 22); }
+      else until = E.t + rand(1.5, 4);
+    }
+    if (state === 'walk' && Math.abs(target - p.x) < 2) { state = 'idle'; until = E.t + rand(2, 6) * (1 - 0.5 * MIND.restless); }
+    // locomotion
+    let want = 0; const speed = 24 * (0.6 + 0.6 * MIND.restless + 0.4 * cur.en) * (E.mood === 'low' ? 0.6 : 1);
+    if ((state === 'walk' || state === 'attend') && Math.abs(target - p.x) > 2) want = Math.sign(target - p.x) * speed;
+    if (state === 'attend' && Math.abs(target - p.x) <= 2) p.face = -1;
+    else if (want) p.face = Math.sign(want);
+    if (E.t - E.loudT < dt * 1.5 && p.onFloor) { p.vy = -120; p.onFloor = false; }
+    if (state === 'held') {
+      const ly = fy - 26 + Math.sin(E.t * 3) * 2; p.vy += ((ly - p.y) * 30 - p.vy * 8) * dt; p.vx += (rand(-60, 60) - p.vx * 3) * dt; p.onFloor = false;
+      p.rot += (Math.sin(E.t * 2.3) * 0.15 - p.rot) * dt * 3;
+    } else if (state === 'tumble') {
+      p.vx += rand(-2200, 2200) * dt; p.vy += rand(-2600, 1200) * dt; p.vr += rand(-60, 60) * dt; p.onFloor = false;
+    }
+    if (p.onFloor && state !== 'held') p.y = fy;
+    if (state !== 'held') {
+      if (!p.onFloor) { p.vy += g * dt; p.vx += g * slope * dt * 0.6; }
+      else {
+        // on the floor: walking, and the tilt pulls it along the floor; past a point it slides and scrambles
+        const pull = g * slope; const sliding = Math.abs(slope) > 0.42;
+        if (sliding) { p.vx += (pull * 0.7 - p.vx * 1.2) * dt; p.phase += dt * 18; }
+        else p.vx += ((want + pull * 0.08) - p.vx) * Math.min(1, dt * 8);
+      }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.y >= fy) { if (!p.onFloor && p.vy > 60) squash = clamp(p.vy / 300, 0, 0.8); p.y = fy; p.vy = state === 'tumble' ? -p.vy * 0.45 : 0; p.onFloor = state !== 'tumble' || Math.abs(p.vy) < 20; }
+      if (p.x < 22) { p.x = 22; p.vx = Math.abs(p.vx) * (state === 'tumble' ? 0.5 : 0); } if (p.x > W - 22) { p.x = W - 22; p.vx = -Math.abs(p.vx) * (state === 'tumble' ? 0.5 : 0); }
+      if (p.y < 30) { p.y = 30; p.vy = Math.abs(p.vy) * 0.4; }
+    } else { p.x += p.vx * dt; p.y += p.vy * dt; p.x = clamp(p.x, 20, W - 20); }
+    // lean: against the slope (it braces), into its walk, a head-tilt when curious, a sway when it hums
+    let lean = -slope * 0.5 + (want ? Math.sign(want) * 0.08 : 0) + (E.mood === 'curious' ? 0.16 * p.face : 0) + (state === 'hum' ? 0.12 * Math.sin(E.t * 7.5) * E.env : 0);
+    if (state === 'tumble') { p.rot += p.vr * dt; p.vr *= 0.98; } else { p.vr = 0; p.rot += (lean - p.rot) * Math.min(1, dt * 6); }
+    squash *= Math.exp(-dt * 9);
+    if (want || (p.onFloor && Math.abs(slope) > 0.42)) p.phase += dt * Math.abs(want || 20) * 0.45;
+    // the tuft: a sprung stalk; it lags behind every move, droops when low or asleep
+    const b = bodyC(), [rx, ry] = bodyR(), ax = b.x + Math.sin(p.rot) * ry, ay = b.y - Math.cos(p.rot) * ry;
+    const droop = E.asleep ? 1 : E.mood === 'low' ? 0.6 : 0, len = 10;
+    const restX = ax + Math.sin(p.rot + droop * 1.3 * p.face) * len, restY = ay - Math.cos(p.rot + droop * 1.3 * p.face) * len;
+    tuft.vx += ((restX - tuft.x) * 90 - tuft.vx * 7 + g * slope * 0.1) * dt; tuft.vy += ((restY - tuft.y) * 90 - tuft.vy * 7 + 30) * dt;
+    tuft.x += tuft.vx * dt; tuft.y += tuft.vy * dt; const dx = tuft.x - ax, dy = tuft.y - ay, dl = Math.hypot(dx, dy); if (dl > len * 1.4) { tuft.x = ax + dx / dl * len * 1.4; tuft.y = ay + dy / dl * len * 1.4; }
+    flashT = Math.max(0, flashT - dt);
+    for (const s of sparks) { s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt * 0.8; } while (sparks.length && sparks[0].life <= 0) sparks.shift();
+    // the whole mind is a second light in its sky: a moon that rises when it arrives and sets when it goes
+    moonY += ((E.whole ? 26 : fy + 20) - moonY) * Math.min(1, dt * 0.9);
+  }
+  function draw() {
+    const fy = floorY();
+    for (let y = 0; y < H; y++) { const r = sky[y * 3], g = sky[y * 3 + 1], b = sky[y * 3 + 2]; for (let x = 0; x < W; x++) { const i = (y * W + x) * 4; D[i] = r; D[i + 1] = g; D[i + 2] = b; D[i + 3] = 255; } }
+    // the moon (whole mind): drawn behind the floor line
+    if (moonY < fy + 12) {
+      const mx = 204, my = moonY;
+      for (let y = Math.max(0, Math.floor(my - 34)); y < Math.min(fy, my + 34); y++) for (let x = mx - 34; x < mx + 34; x++) { const d = Math.hypot(x - mx, y - my); if (d < 34) addp(x, y, 255, 236, 220, 0.18 * (1 - d / 34) ** 2); }
+      for (let y = Math.floor(my - 9); y < Math.min(fy, my + 9); y++) for (let x = mx - 9; x < mx + 9; x++) { const d = Math.hypot(x + 0.5 - mx, y + 0.5 - my) - 7.5; if (d < 0.5) blend(x, y, 255, 240, 226, clamp(0.5 - d, 0, 1)); }
+    }
+    // floor
+    for (let y = Math.floor(fy) + 1; y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4; D[i] = 70; D[i + 1] = 38; D[i + 2] = 44; }
+    for (let x = 0; x < W; x++) blend(x, Math.floor(fy), 255, 190, 150, 0.5);
+    const b = bodyC(), [rx, ry] = bodyR();
+    // shadow
+    const hgt = clamp((fy - p.y) / 40, 0, 1); ellipse(p.x, fy + 0.5, rx * (1 - 0.4 * hgt), 1.8, 50, 26, 34, 0.55 * (1 - hgt * 0.6));
+    // legs
+    const dark = [46, 24, 34];
+    if (legLen() > 0.5) for (let i = 0; i < 2; i++) {
+      const side = i ? 1 : -1, hipX = b.x + side * 7 + Math.sin(p.rot) * ry * 0.8, hipY = b.y + ry * 0.75;
+      let fx = p.x + side * 7, fyy = p.y;
+      if (state === 'held') { fx = hipX + Math.sin(E.t * 9 + i * 2) * 3; fyy = hipY + legLen() + 2; }
+      else if (state === 'walk' || state === 'attend' || Math.abs(p.vx) > 4) { const ph = p.phase + i * Math.PI; fx += Math.sin(ph) * 3.5; fyy -= Math.max(0, Math.cos(ph)) * 2.5; }
+      seg(hipX, hipY, fx, fyy, 2.6, dark[0], dark[1], dark[2]); ellipse(fx + 1.4 * p.face, fyy - 0.7, 3, 1.5, dark[0], dark[1], dark[2]);
+    }
+    // body: a dark warm bean lit from behind by the sky (rim light), and by the moon when the whole mind is here
+    const co = Math.cos(-p.rot), si = Math.sin(-p.rot), wa = E.wholeAmt;
+    for (let y = Math.floor(b.y - ry - 2); y <= b.y + ry + 2; y++) for (let x = Math.floor(b.x - rx - 2); x <= b.x + rx + 2; x++) {
+      const dx0 = x + 0.5 - b.x, dy0 = y + 0.5 - b.y, dx = dx0 * co - dy0 * si, dy = dx0 * si + dy0 * co;
+      const nx = dx / rx, ny = dy / ry, rr = Math.pow(Math.abs(nx) ** 2.3 + Math.abs(ny) ** 2.3, 1 / 2.3), d = (rr - 1) * Math.min(rx, ry);
+      if (d > 0.5) continue; const cov = clamp(0.5 - d, 0, 1);
+      const nz = Math.sqrt(Math.max(0, 1 - Math.min(1, rr * rr)));
+      let r = 74, g = 40, bb = 52;
+      const top = clamp(-ny * 0.6 + 0.4, 0, 1) * nz; r += 22 * top; g += 12 * top; bb += 12 * top;
+      const rim = Math.pow(1 - nz, 2.2);
+      const warm = clamp(0.6 + ny * 0.5 - nx * 0.2, 0, 1) * rim; r += 190 * warm; g += 100 * warm; bb += 70 * warm;
+      const cool = clamp(-ny * 0.5 + nx * 0.7, 0, 1) * rim * wa; r += 120 * cool; g += 130 * cool; bb += 130 * cool;
+      blend(x, y, Math.min(255, r), Math.min(255, g), Math.min(255, bb), cov);
+    }
+    // the dot face's eyes, glowing, small: the face is still there, now it has somewhere to be
+    const s = 0.37, F = face(b.x + p.face * (E.mood === 'curious' ? 1.5 : 1) * 1.2 + Math.sin(p.rot) * -2 - E.gaze[0] * 1.5, b.y - ry * 0.14, s, 9, 1, 1, p.rot);
+    const tint = [cur.tr, cur.tg, cur.tb];
+    for (const e of F.eyes) {
+      for (let y = Math.floor(e.cy - e.h - 4); y <= e.cy + e.h + 4; y++) for (let x = Math.floor(e.cx - e.w - 4); x <= e.cx + e.w + 4; x++) {
+        const ex = x + 0.5 - e.cx, ey = y + 0.5 - e.cy, d = eyeDist(e, ex, ey);
+        if (d > 0) { addp(x, y, tint[0], tint[1] * 0.8, tint[2] * 0.7, 0.35 * Math.exp(-d * 0.7)); continue; }
+        const cov = clamp(0.5 - d, 0, 1), gl = 1 - ((ex + e.w * 0.35) ** 2 + (ey + e.h * 0.4) ** 2) / 2.2;
+        const lift = 0.15 * clamp(-ey / e.h, 0, 1);
+        blend(x, y, mix(tint[0], 255, 0.25 + lift + Math.max(0, gl) * 0.6), mix(tint[1], 240, 0.25 + lift + Math.max(0, gl) * 0.6), mix(tint[2], 226, 0.25 + lift + Math.max(0, gl) * 0.6), cov);
+      }
+    }
+    const m = F.mouth;
+    for (let y = Math.floor(m.y - 6); y <= m.y + 7; y++) for (let x = Math.floor(m.x - m.mw - 2); x <= m.x + m.mw + 2; x++) { const d = mouthDist(m, x + 0.5, y + 0.5, 0.55); if (d < 0.5) blend(x, y, mix(tint[0], 255, 0.2), mix(tint[1], 240, 0.2), mix(tint[2], 226, 0.2), clamp(0.5 - d, 0, 1) * 0.9); }
+    // tuft: its tip flashes with each piece its mind writes (your words in blue, the Mac's in ink)
+    const ax = b.x + Math.sin(p.rot) * ry, ay = b.y - Math.cos(p.rot) * ry;
+    { const dx = tuft.x - ax, dy = tuft.y - ay, L = Math.hypot(dx, dy) || 1, nx = -dy / L * p.face, ny = dx / L * p.face;
+      let px0 = ax, py0 = ay; for (let j = 1; j <= 10; j++) { const t = j / 10, bend = Math.sin(t * Math.PI) * 2.5; const x = ax + dx * t + nx * bend, y = ay + dy * t + ny * bend; seg(px0, py0, x, y, 2 - t * 0.8, 84, 46, 58); px0 = x; py0 = y; }
+      for (let j = 1; j <= 6; j++) { const a = j / 6 * 2.6; const x = tuft.x + nx * 2.2 * (1 - Math.cos(a)) + dx / L * 2.2 * Math.sin(a), y = tuft.y + ny * 2.2 * (1 - Math.cos(a)) + dy / L * 2.2 * Math.sin(a); seg(px0, py0, x, y, 1.1, 84, 46, 58); px0 = x; py0 = y; } }
+    const fl = clamp(flashT * 3, 0, 1);
+    disc(tuft.x, tuft.y, 1.1 + fl, mix(cur.tr, flashCol[0], fl), mix(cur.tg, flashCol[1], fl), mix(cur.tb, flashCol[2], fl));
+    if (fl > 0) for (let y = -6; y <= 6; y++) for (let x = -6; x <= 6; x++) { const d = Math.hypot(x, y); if (d < 6) addp(tuft.x + x, tuft.y + y, flashCol[0], flashCol[1], flashCol[2], 0.25 * fl * (1 - d / 6)); }
+    for (const sp of sparks) disc(sp.x, sp.y, 0.9, sp.col[0], sp.col[1], sp.col[2], sp.life * 0.9);
+    present();
+    drawText({ band: 'rgb(70,38,44)', ink: 'rgb(255,236,220)', you: 'rgb(170,205,228)', thought: 'rgb(255,226,200)', thoughtA: 0.9, z: 'rgb(255,220,200)' });
+  }
+  return { reset, update, draw, head: () => { const b = bodyC(); return { x: b.x, y: b.y - bodyR()[1] - 8 }; }, eyeAt: () => bodyC(), event: (k) => { if (k === 'wake') { p.vy = -60; p.onFloor = false; } if (k === 'arrive') { E.gazeT = [0.8, -1]; E.nextSacc = E.t + 2; } } };
+}
+
+// ---------------- run ----------------
+const MAKERS = { mochi: makeMochi, wisp: makeWisp, pip: makePip };
+const CREATURES = {}; for (const k in MAKERS) CREATURES[k] = MAKERS[k]();
+let C = CREATURES[E.dir] || CREATURES.mochi; C.reset();
+function choose(d) { E.dir = d; C = CREATURES[d]; C.reset(); E.thoughts = []; for (const b of document.querySelectorAll('#dirs button')) b.classList.toggle('on', b.dataset.d === d); }
+function btn(row, label, fn, data) { const b = document.createElement('button'); b.textContent = label; b.onclick = () => { fn(); b.blur(); }; if (data) b.dataset.d = data; document.getElementById(row).append(b); return b; }
+btn('dirs', 'Mochi: the dot face grows a body', () => choose('mochi'), 'mochi');
+btn('dirs', 'Wisp: a puff of motes on paper', () => choose('wisp'), 'wisp');
+btn('dirs', 'Pip: a walker with the glowing eyes', () => choose('pip'), 'pip');
+btn('acts', 'think', () => startThink(2.2, false));
+btn('acts', 'hum an answer', () => startThink(1.0, true));
+const wholeBtn = btn('acts', 'whole mind arrives / leaves', () => { toggleWhole(); wholeBtn.classList.toggle('on', E.whole); });
+btn('acts', 'get sleepy, sleep', () => { E.lastAct = E.t; sleep(); });
+btn('acts', 'wake', () => { act(); wake(); });
+btn('body', '◀ tilt', () => tilt(E.tilt - 0.35));
+btn('body', 'level', () => tilt(0));
+btn('body', 'tilt ▶', () => tilt(E.tilt + 0.35));
+btn('body', 'pick up', pickUp);
+btn('body', 'shake', shake);
+btn('body', 'loud sound', loud);
+for (const m of ['calm', 'pleased', 'curious', 'cheeky', 'low']) btn('moods', m, () => { setMood(m); for (const b of document.querySelectorAll('#moods button')) b.classList.toggle('on', b.textContent === m); });
+choose(E.dir);
+document.querySelector('#moods button').classList.add('on');
+addEventListener('keydown', (ev) => {
+  if (ev.metaKey || ev.ctrlKey) return;
+  if (ev.key === 'ArrowLeft') { tilt(E.tilt - 0.35); ev.preventDefault(); return; }
+  if (ev.key === 'ArrowRight') { tilt(E.tilt + 0.35); ev.preventDefault(); return; }
+  if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { tilt(0); ev.preventDefault(); return; }
+  if (ev.key === 'Enter') { typeKey('\n'); ev.preventDefault(); return; }
+  if (ev.key === 'Backspace') { typeKey('\b'); ev.preventDefault(); return; }
+  if (ev.key.length === 1) { typeKey(ev.key); ev.preventDefault(); }
+});
+const readout = document.getElementById('readout');
+let last = performance.now(), acc = 0, frames = 0;
+function frame(now) {
+  acc += Math.min(0.2, (now - last) / 1000); last = now;
+  while (acc >= 1 / 30) { acc -= 1 / 30; world(1 / 30); C.update(1 / 30); frames++; }
+  C.draw();
+  if (frames % 10 === 0) readout.textContent = `mind: ${U} numbers · restless ${MIND.restless.toFixed(2)} · effort of last piece ${MIND.effort.toFixed(2)} · pieces ${MIND.pieces} · mood ${moodName()} · tilt ${E.tiltS.toFixed(2)}`;
+  document.documentElement.dataset.frames = frames;
+}
+function loop() { frame(performance.now()); setTimeout(loop, 1000 / 30); }
+// stills for checking: ?script=a,b,c&at=N runs N simulated seconds after the events, then draws once
+if (Q.get('at')) {
+  const evs = (Q.get('script') || '').split(',').filter(Boolean);
+  for (const ev of evs) { const [k, v] = ev.split(':'); if (k === 'type') for (const ch of v.replace(/_/g, ' ')) typeKey(ch); else if (k === 'enter') typeKey('\n'); else if (k === 'think') startThink(2.2, false); else if (k === 'hum') startThink(0.4, true); else if (k === 'tilt') tilt(+v); else if (k === 'pick') pickUp(); else if (k === 'shake') shake(); else if (k === 'loud') loud(); else if (k === 'sleep') { sleep(); } else if (k === 'whole') toggleWhole(); else if (k === 'mood') setMood(v); else if (k === 'idle') E.lastAct = -20; }
+  const n = Math.round(+Q.get('at') * 30); for (let i = 0; i < n; i++) { world(1 / 30); C.update(1 / 30); if (Q.get('typed') && i === 1) E.typingT = E.t; }
+  C.draw(); document.documentElement.dataset.ready = '1';
+} else loop();
+</script>
+</body>
+</html>

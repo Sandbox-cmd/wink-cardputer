@@ -19,14 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-This licence covers the code and text of this repository except the parts below,
-which keep their own terms (see "Licences and data" in README.md):
-
-- firmware/model/wink.bin, the trained mind: CC BY-NC-SA 4.0 (non-commercial,
-  share-alike), because it was trained in part on DailyDialog.
-- firmware/lib/sam/ (except samvoice.cpp and samvoice.h): the reverse-engineered
-  SAM speech synthesizer core, distributed without a licence by its authors.
-- sound/childlike.py imports praat-parselmouth, which is GPL-3.0.

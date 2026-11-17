@@ -138,7 +138,7 @@ The design notes in `sound/`, `look/` and `train/corpus/` were written while the
 
 ## Licences and data
 
-- **Code and text:** MIT, see [`LICENSE`](LICENSE).
+- **Code and text:** MIT, see [`LICENSE`](LICENSE); the exceptions below are also listed in [`NOTICE`](NOTICE).
 - **The trained mind** (`firmware/model/wink.bin`): **CC BY-NC-SA 4.0**, non-commercial and share-alike. It was trained in part on [DailyDialog](http://yanran.li/dailydialog) (Li et al., 2017; CC BY-NC-SA 4.0) and on [TinyStories](https://huggingface.co/datasets/roneneldan/TinyStories) (Eldan and Li, 2023; CDLA-Sharing-1.0). To use Wink commercially, retrain without DailyDialog.
 - **The fallback synthesizer** (`firmware/lib/sam/`, except `samvoice.*`) is the reverse-engineered SAM core by Sebastian Macke, as adapted in Earle F. Philhower's [ESP8266SAM](https://github.com/earlephilhower/ESP8266SAM). Its authors publish it without a licence; see their notes.
 - **The childlike voice** (`sound/childlike.py`) uses [praat-parselmouth](https://github.com/YannickJadoul/Parselmouth), GPL-3.0.
